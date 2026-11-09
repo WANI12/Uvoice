@@ -1,0 +1,294 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+enum UserRole {
+  REPORTER
+  JOURNALIST
+  CSO_MONITOR
+  FIELD_VERIFIER
+  ANALYST
+  RESPONSE_OFFICER
+  ORG_COORDINATOR
+  SUPERVISOR
+  ADMIN
+  AUDITOR
+}
+enum ElectoralPhase {
+  PRE_ELECTION
+  ELECTION_DAY
+  POST_ELECTION
+}
+enum ReporterMode {
+  IDENTIFIED
+  CONFIDENTIAL
+  ANONYMOUS
+}
+enum SourceType {
+  FIRST_HAND
+  SECOND_HAND
+  OFFICIAL_STATEMENT
+  MEDIA_REPORT
+  ANALYST_ASSESSMENT
+}
+enum ReportStatus {
+  SUBMITTED
+  AWAITING_TRIAGE
+  UNDER_VERIFICATION
+  VERIFIED
+  UNVERIFIED
+  INCONCLUSIVE
+  LINKED_TO_CASE
+}
+enum CaseStatus {
+  OPEN
+  UNDER_VERIFICATION
+  ESCALATED
+  ACKNOWLEDGED
+  IN_PROGRESS
+  AWAITING_INFORMATION
+  RESOLVED_PENDING_REVIEW
+  CLOSED
+  REOPENED
+  REFERRED
+}
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+enum VerificationDecision {
+  VERIFIED
+  UNVERIFIED
+  INCONCLUSIVE
+  NEEDS_MORE_INFORMATION
+}
+
+model User {
+  id             String       @id @default(uuid()) @db.Uuid
+  username       String       @unique
+  email          String       @unique
+  passwordHash   String
+  displayName    String
+  phone          String?
+  status         UserStatus   @default(PENDING)
+  role           UserRole     @default(REPORTER)
+  emailVerifiedAt DateTime?
+  passwordChangedAt DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  reports        Report[]     @relation("ReporterReports")
+  assignments    CaseAssignment[]
+  auditEvents    AuditEvent[]
+  memberships    OrganizationMembership[]
+  verificationReviews Verification[]
+  caseActions    CaseAction[]
+  passwordResets PasswordResetToken[]
+}
+
+model Organization {
+  id          String @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String @unique
+  description String?
+  active      Boolean @default(true)
+  createdAt   DateTime @default(now())
+  memberships OrganizationMembership[]
+  assignments CaseAssignment[]
+  approvedAt DateTime?
+  approvedById String? @db.Uuid
+  contactEmail String?
+  contactPhone String?
+}
+
+model OrganizationMembership {
+  id             String @id @default(uuid()) @db.Uuid
+  userId         String @db.Uuid
+  organizationId String @db.Uuid
+  role           UserRole
+  active         Boolean @default(true)
+  user           User @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  @@unique([userId, organizationId])
+}
+
+model Indicator {
+  id          String @id @default(uuid()) @db.Uuid
+  code        String @unique
+  name        String
+  description String?
+  phase       ElectoralPhase
+  category    String
+  active      Boolean @default(true)
+  reports     ReportIndicator[]
+}
+
+model Report {
+  id              String @id @default(uuid()) @db.Uuid
+  reference       String @unique
+  trackingTokenHash String? @unique
+  reporterId      String? @db.Uuid
+  phase           ElectoralPhase
+  category        String
+  description     String
+  occurredAt      DateTime?
+  submittedAt     DateTime @default(now())
+  stateCode       String?
+  countyCode      String?
+  locality        String?
+  latitude        Decimal? @db.Decimal(10,7)
+  longitude       Decimal? @db.Decimal(10,7)
+  imminentThreat  Boolean @default(false)
+  sourceType      SourceType
+  reporterMode    ReporterMode
+  status          ReportStatus @default(SUBMITTED)
+  reporter        User? @relation("ReporterReports", fields: [reporterId], references: [id])
+  indicators      ReportIndicator[]
+  attachments     Attachment[]
+  verifications   Verification[]
+  caseLinks       CaseReport[]
+  @@index([submittedAt, status])
+  @@index([phase, category])
+  @@index([stateCode, countyCode])
+}
+
+model ReportIndicator {
+  reportId    String @db.Uuid
+  indicatorId String @db.Uuid
+  report      Report @relation(fields: [reportId], references: [id])
+  indicator   Indicator @relation(fields: [indicatorId], references: [id])
+  @@id([reportId, indicatorId])
+}
+
+model Attachment {
+  id           String @id @default(uuid()) @db.Uuid
+  reportId     String @db.Uuid
+  storageKey   String
+  originalName String
+  mimeType     String
+  sizeBytes    BigInt
+  sha256       String?
+  scanStatus   String @default("PENDING")
+  createdAt    DateTime @default(now())
+  report       Report @relation(fields: [reportId], references: [id])
+}
+
+model Verification {
+  id          String @id @default(uuid()) @db.Uuid
+  reportId    String @db.Uuid
+  reviewerId  String @db.Uuid
+  decision    VerificationDecision
+  confidence  Int?
+  rationale   String
+  createdAt   DateTime @default(now())
+  report      Report @relation(fields: [reportId], references: [id])
+  reviewer    User @relation(fields: [reviewerId], references: [id])
+}
+
+model ElectionCase {
+  id             String @id @default(uuid()) @db.Uuid
+  reference      String @unique
+  title          String
+  summary        String
+  status         CaseStatus @default(OPEN)
+  riskLevel      RiskLevel @default(MODERATE)
+  riskScore      Decimal? @db.Decimal(3,2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  reports        CaseReport[]
+  assignments    CaseAssignment[]
+  actions        CaseAction[]
+  history        CaseStatusHistory[]
+  escalations    Escalation[]
+  @@index([status, riskLevel])
+}
+
+model CaseReport {
+  caseId   String @db.Uuid
+  reportId String @db.Uuid
+  linkedAt DateTime @default(now())
+  electionCase ElectionCase @relation(fields: [caseId], references: [id])
+  report Report @relation(fields: [reportId], references: [id])
+  @@id([caseId, reportId])
+}
+
+model CaseAssignment {
+  id             String @id @default(uuid()) @db.Uuid
+  caseId         String @db.Uuid
+  userId         String? @db.Uuid
+  organizationId String? @db.Uuid
+  assignedAt     DateTime @default(now())
+  acknowledgedAt DateTime?
+  active         Boolean @default(true)
+  electionCase   ElectionCase @relation(fields: [caseId], references: [id])
+  user           User? @relation(fields: [userId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+}
+
+model CaseAction {
+  id          String @id @default(uuid()) @db.Uuid
+  caseId      String @db.Uuid
+  actorId     String @db.Uuid
+  actionType  String
+  description String
+  createdAt   DateTime @default(now())
+  electionCase ElectionCase @relation(fields: [caseId], references: [id])
+  actor       User @relation(fields: [actorId], references: [id])
+}
+
+model CaseStatusHistory {
+  id          String @id @default(uuid()) @db.Uuid
+  caseId      String @db.Uuid
+  fromStatus  CaseStatus?
+  toStatus    CaseStatus
+  changedById String? @db.Uuid
+  reason      String?
+  createdAt   DateTime @default(now())
+  electionCase ElectionCase @relation(fields: [caseId], references: [id])
+}
+
+model Escalation {
+  id          String @id @default(uuid()) @db.Uuid
+  caseId      String @db.Uuid
+  level       Int
+  reason      String
+  triggeredAt DateTime @default(now())
+  acknowledgedAt DateTime?
+  electionCase ElectionCase @relation(fields: [caseId], references: [id])
+}
+
+model AuditEvent {
+  id          String @id @default(uuid()) @db.Uuid
+  actorId     String? @db.Uuid
+  action      String
+  entityType  String
+  entityId    String
+  metadata    Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+  actor       User? @relation(fields: [actorId], references: [id])
+  @@index([entityType, entityId, createdAt])
+}
+
+model PasswordResetToken {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  tokenHash String @unique
+  expiresAt DateTime
+  usedAt DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, expiresAt])
+}

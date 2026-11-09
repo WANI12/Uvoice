@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sautiwatch-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sautiwatch
+      POSTGRES_PASSWORD: sautiwatch_dev_password
+      POSTGRES_DB: sautiwatch
+    ports: ["5432:5432"]
+    volumes: ["sautiwatch_pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sautiwatch -d sautiwatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+volumes:
+  sautiwatch_pgdata:

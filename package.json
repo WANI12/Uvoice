@@ -1,0 +1,27 @@
+{
+  "name": "sautiwatch",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "packages/database"
+  ],
+  "scripts": {
+    "dev": "dotenv -e .env -- concurrently -k -n api,web -c blue,green \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "dotenv -e .env -- npm --workspace @sautiwatch/api run start:dev",
+    "dev:web": "dotenv -e .env -- npm --workspace @sautiwatch/web run dev",
+    "db:generate": "dotenv -e .env -- npm --workspace @sautiwatch/database run generate",
+    "db:migrate": "dotenv -e .env -- npm --workspace @sautiwatch/database run migrate --",
+    "db:deploy": "dotenv -e .env -- npm --workspace @sautiwatch/database run deploy",
+    "db:seed": "dotenv -e .env -- npm --workspace @sautiwatch/database run seed",
+    "build": "dotenv -e .env -- npm run db:generate && dotenv -e .env -- npm --workspace @sautiwatch/api run build && dotenv -e .env -- npm --workspace @sautiwatch/web run build",
+    "test": "npm --workspace @sautiwatch/api run test",
+    "db:validate": "dotenv -e .env -- npm --workspace @sautiwatch/database exec prisma validate -- --schema prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "dotenv-cli": "^8.0.0",
+    "typescript": "^5.7.3"
+  }
+}
