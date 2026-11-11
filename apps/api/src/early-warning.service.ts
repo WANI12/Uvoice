@@ -475,8 +475,8 @@ export class EarlyWarningService implements OnModuleInit, OnModuleDestroy {
           await this.transporter.sendMail({
             from: process.env.SMTP_FROM,
             to: recipient.email,
-            subject: `[SautiWatch ${input.severity}] ${input.title}`,
-            text: `${input.title}\n\n${input.summary}\n\nReview and acknowledge this automated signal in the SautiWatch early-warning workspace. Automated alerts are not confirmed findings.`,
+            subject: `[UVoice ${input.severity}] ${input.title}`,
+            text: `${input.title}\n\n${input.summary}\n\nReview and acknowledge this automated signal in the UVoice early-warning workspace. Automated alerts are not confirmed findings.`,
           });
           await this.db.warningNotification.update({
             where: { alertId_recipientId_channel: { alertId: alert.id, recipientId: recipient.id, channel: WarningChannel.EMAIL } },

@@ -78,7 +78,7 @@ export default function Dashboard() {
     setMessage('');
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'SautiWatch Situation Room', url: location.href });
+        await navigator.share({ title: 'UVoice Situation Room', url: location.href });
       } else {
         await navigator.clipboard.writeText(location.href);
         setMessage('Situation-room link copied.');
@@ -105,7 +105,7 @@ export default function Dashboard() {
   return (
     <main className="situation-shell">
       <aside className="situation-rail">
-        <Link href="/" className="situation-brand" aria-label="SautiWatch South Sudan home"><span className="situation-brand-mark">◈</span><span>SAUTIWATCH<small>SOUTH SUDAN</small></span></Link>
+        <Link href="/" className="situation-brand" aria-label="UVoice South Sudan home"><span className="situation-brand-mark">◈</span><span>UVOICE<small>SOUTH SUDAN</small></span></Link>
         <div className="situation-workspace">
           <div className="situation-workspace-mark"><Layers size={23}/></div>
           <div className="situation-workspace-copy"><strong>Situation Room</strong><small>National operations</small></div>
@@ -126,7 +126,7 @@ export default function Dashboard() {
           {role === 'ADMIN' && <Link className="situation-nav-link" href="/admin" aria-label="Administration"><ShieldCheck size={19}/><span>Administration</span></Link>}
           <button className="situation-nav-link situation-logout" aria-label="Sign out" onClick={logout}><LogOut size={19}/><span>Sign out</span></button>
         </div>
-        <div className="situation-rail-footer">SautiWatch · Operational workspace</div>
+        <div className="situation-rail-footer">UVoice · Operational workspace</div>
       </aside>
 
       <section className="situation-main">

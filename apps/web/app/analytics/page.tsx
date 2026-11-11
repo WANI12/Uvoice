@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
       const blob = await response.blob();
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `sautiwatch-${kind}-report.csv`;
+      link.download = `uvoice-${kind}-report.csv`;
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to download report.'); }
@@ -136,7 +136,7 @@ export default function AnalyticsPage() {
   return (
     <main className="container analytics-page">
       <header className="dashhead">
-        <div><Link href="/" className="brand">◈ SAUTIWATCH</Link><p className="muted">National election situation room</p></div>
+        <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">National election situation room</p></div>
         <div className="row"><Link className="btn secondary" href="/dashboard">Situation room</Link><Link className="btn secondary" href="/executive">Executive dashboard</Link></div>
       </header>
       <div className="row between analytics-heading">

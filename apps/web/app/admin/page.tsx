@@ -55,7 +55,7 @@ export default function Admin() {
   }
 
   return <main className="container" style={{ paddingTop: 40, paddingBottom: 70 }}>
-    <Link href="/dashboard" className="brand">← SAUTIWATCH</Link>
+    <Link href="/dashboard" className="brand">← UVOICE</Link>
     <h1 style={{ marginTop: 24 }}>Administration</h1>
     <p className="muted">Organisation approvals and user role administration. Actions are recorded in the audit log.</p>
     {error && <p className="error" role="alert">{error}</p>}

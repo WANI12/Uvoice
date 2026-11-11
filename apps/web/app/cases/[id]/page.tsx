@@ -156,7 +156,7 @@ export default function CaseDetailPage() {
   return (
     <main className="container case-detail-page" style={{ paddingTop: 32, paddingBottom: 70 }}>
       <header className="dashhead">
-        <div><Link href="/" className="brand">◈ SAUTIWATCH</Link><p className="muted">National election early warning workspace</p></div>
+        <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">National election early warning workspace</p></div>
         <div className="row"><Link className="btn secondary" href="/cases"><ArrowLeft size={16}/> Case queue</Link><Link className="btn secondary" href="/dashboard">Situation room</Link></div>
       </header>
       {error && <p className="error" role="alert">{error}</p>}

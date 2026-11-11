@@ -362,7 +362,7 @@ export class AnalyticsService {
       priorityIncidents,
       approvedRecommendations: recommendations,
       limitations: [
-        'Aggregates reflect reports recorded in SautiWatch for the selected period and filters.',
+        'Aggregates reflect reports recorded in UVoice for the selected period and filters.',
         'Unverified reports and automated alerts are signals for review, not confirmed findings.',
         'Administrative locations may be missing or inconsistent; geographic comparisons cover records with reported locations.',
       ],

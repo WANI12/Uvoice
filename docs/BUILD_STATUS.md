@@ -1,4 +1,4 @@
-# Build status — SautiWatch MVP 1.0
+# Build status — UVoice MVP 1.0
 
 ## Implemented in source
 

@@ -67,7 +67,7 @@ export default function ExecutivePage() {
       }
       const link = document.createElement('a');
       link.href = URL.createObjectURL(await response.blob());
-      link.download = `sautiwatch-${kind}-briefing.csv`;
+      link.download = `uvoice-${kind}-briefing.csv`;
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to download briefing.'); }
@@ -77,7 +77,7 @@ export default function ExecutivePage() {
 
   return <main className="container analytics-page">
     <header className="dashhead">
-      <div><Link href="/" className="brand">◈ SAUTIWATCH</Link><p className="muted">Restricted national intelligence view</p></div>
+      <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">Restricted national intelligence view</p></div>
       <div className="row"><Link className="btn secondary" href="/dashboard">Situation room</Link><Link className="btn secondary" href="/analytics">Operational analytics</Link></div>
     </header>
     <div className="row between analytics-heading">

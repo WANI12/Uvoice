@@ -170,10 +170,10 @@ export class AnalyticsController {
       response: 'Election Response Performance Report',
     }[kind]!;
     const rows: unknown[][] = [
-      ['SautiWatch', title],
+      ['UVoice', title],
       ['Reporting period', analytics.reportingPeriod.from, analytics.reportingPeriod.to],
       ['Generated at', analytics.generatedAt],
-      ['Data sources', 'SautiWatch reports, verification records, case management, assignments and early-warning alerts in PostgreSQL'],
+      ['Data sources', 'UVoice reports, verification records, case management, assignments and early-warning alerts in PostgreSQL'],
       ['Verification status', 'Report totals are separated by verification status; unverified and inconclusive reports are not treated as confirmed.'],
       ['Methodology', 'Aggregated database records filtered by submission/assignment time, electoral phase and selected geography.'],
       ['Limitations', 'Missing or inconsistent location data affects geographic comparisons. Automated signals are not confirmed findings. Response time is assignment-to-acknowledgement; resolution rate uses cases created in the period.'],
@@ -225,7 +225,7 @@ export class AnalyticsController {
     }
 
     response.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    response.setHeader('Content-Disposition', `attachment; filename="sautiwatch-${kind}-report-${range.start.toISOString().slice(0, 10)}.csv"`);
+    response.setHeader('Content-Disposition', `attachment; filename="uvoice-${kind}-report-${range.start.toISOString().slice(0, 10)}.csv"`);
     response.send(`\uFEFF${asCsv(rows)}`);
   }
 }

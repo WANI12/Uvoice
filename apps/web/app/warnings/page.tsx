@@ -138,7 +138,7 @@ export default function WarningsPage() {
   return (
     <main className="container warning-page" style={{ paddingTop: 32, paddingBottom: 70 }}>
       <header className="dashhead">
-        <div><Link href="/" className="brand">◈ SAUTIWATCH</Link><p className="muted">National election early warning workspace</p></div>
+        <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">National election early warning workspace</p></div>
         <div className="row"><Link className="btn secondary" href="/dashboard">Situation room</Link><Link className="btn secondary" href="/cases">Case management</Link><Link className="btn secondary" href="/operations">GIS operations</Link></div>
       </header>
       <div className="row between case-page-heading">

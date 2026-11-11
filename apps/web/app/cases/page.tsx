@@ -66,7 +66,7 @@ export default function CasesPage() {
   return (
     <main className="container" style={{ paddingTop: 32, paddingBottom: 70 }}>
       <header className="dashhead">
-        <div><Link href="/" className="brand">◈ SAUTIWATCH</Link><p className="muted">National election early warning workspace</p></div>
+        <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">National election early warning workspace</p></div>
         <div className="row"><Link className="btn secondary" href="/dashboard">Situation room</Link><Link className="btn secondary" href="/operations">Operational intelligence</Link></div>
       </header>
       <div className="row between case-page-heading">
