@@ -42,6 +42,17 @@ Accepted report response includes `reference`, `trackingToken` (one-time display
 
 The case workspace is available at `/cases`; details and lifecycle actions are at `/cases/:id`.
 
+## Automated early warning
+
+- `GET /early-warning/alerts?status=OPEN` — authorised analyst, supervisor, admin or auditor.
+- `POST /early-warning/run` — supervisor/admin; run a rule scan on demand.
+- `POST /early-warning/alerts/:id/acknowledge` — analyst, supervisor or admin.
+- `POST /early-warning/alerts/:id/dismiss` `{reason}` — analyst, supervisor or admin; reason must be at least 10 characters and is audited.
+- `GET /early-warning/bulletins/daily` or `/early-warning/bulletins/weekly` — retrieve the current aggregate bulletin, creating it if needed.
+- `POST /early-warning/bulletins/daily/generate` or `/early-warning/bulletins/weekly/generate` — refresh and persist the aggregate bulletin snapshot.
+
+The rule scan runs every minute by default. It creates deduplicated alerts for repeated county/category reports (3 in 24 hours), county concentrations (5 in 24 hours), unresolved critical cases, recent case escalations, and overdue assigned high/critical cases. Thresholds and scan cadence are configurable with `EARLY_WARNING_*` environment variables. Email delivery uses the existing SMTP settings; alerts remain available in-app when SMTP is not configured. Signals are not verified findings and never include reporter identity, narrative descriptions or tracking tokens.
+
 ## Administration
 
 - `GET /admin/users` — admin.

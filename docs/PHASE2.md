@@ -51,7 +51,7 @@ Run `npm run dev` after the migration and build. In local development, `npm run 
 - Only reports with supplied latitude and longitude appear in the geographic feed.
 - Location data may itself be sensitive. Restrict access, avoid public map sharing, and consider coordinate generalisation for small communities or vulnerable sources before production.
 - The interactive map groups nearby reports into approximate 20 km cells and does not display precise incident coordinates. Access remains restricted to authorised operational roles; review local privacy requirements before production use.
-- Notification delivery, scheduled SLA monitoring, SMS/USSD, offline sync, file evidence scanning, and independent security testing remain future production-hardening tasks.
+- SMS/USSD, offline sync, file evidence scanning, and independent security testing remain future production-hardening tasks.
 
 ## Phase 2.3 – Case Management & Response Operations
 
@@ -67,3 +67,20 @@ The case workspace at `/cases` and `/cases/:id` supports the operational lifecyc
 The schema migration adds optional assignment deadlines and structured verification evidence/source fields. Apply migrations with `npm run db:deploy` in deployment environments or `npm run db:migrate -- --name case_response_operations` in development, then regenerate the Prisma client and build.
 
 Role controls: only supervisors/admins assign, set closure/reopening decisions or access assignment options. Analysts and auditors can access the operational queue; field verifiers, response officers and organisation coordinators are restricted to assigned cases. Avoid placing reporter identity or unnecessary personal data in verification notes and action logs.
+
+## Phase 2.4 – Automated Early Warning Engine
+
+The authorised `/warnings` workspace presents deduplicated signals and generated daily/weekly bulletins. The API under `/api/v1/early-warning` supports alert review, supervisor-triggered scans and bulletin generation. A background scan runs every minute by default; set `EARLY_WARNING_INTERVAL_MS` to change the cadence (minimum 15 seconds, maximum 1 hour).
+
+Default deterministic rules evaluate a rolling 24-hour report window:
+
+- Three or more reports with the same state, county and category create a repeated-pattern alert.
+- Five or more reports in one state/county create a geographic-concentration alert.
+- Unresolved critical cases and case escalations create immediate-review alerts.
+- Missed deadlines for unresolved high/critical cases create alerts for supervisors and the assigned officer or institution members.
+
+Set `EARLY_WARNING_WINDOW_HOURS` (1–168), `EARLY_WARNING_REPEAT_THRESHOLD` (2–100), and `EARLY_WARNING_CONCENTRATION_THRESHOLD` (2–100) to tune rule thresholds. Rule fingerprints prevent duplicate alerts for the same case/escalation/deadline or repeated pattern during the same UTC day. Each alert and notification delivery outcome is persisted; acknowledgements and dismissals are audit logged. SMTP delivery reuses `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` and `SMTP_FROM`. If SMTP is unavailable, authorised staff can still review in-app alerts; failed configured deliveries are logged and recorded.
+
+Bulletins are structured aggregate snapshots persisted by UTC day or week. They include counts, top categories/locations, case risk/status distributions and safeguards, but exclude reporter identity, report narratives, tracking tokens and precise coordinates. All rule matches are preliminary signals: staff must check for duplicate reports and verify context before deciding whether to escalate or act.
+
+Apply the Phase 2.4 migration with `npm run db:deploy`, then run `npm run db:generate` and rebuild. Local development may use `npm run db:migrate -- --name automated_early_warning`.

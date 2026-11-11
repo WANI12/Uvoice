@@ -75,6 +75,20 @@ enum VerificationDecision {
   INCONCLUSIVE
   NEEDS_MORE_INFORMATION
 }
+enum EarlyWarningStatus {
+  OPEN
+  ACKNOWLEDGED
+  DISMISSED
+}
+enum WarningChannel {
+  IN_APP
+  EMAIL
+}
+enum WarningDeliveryStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
 
 model User {
   id             String       @id @default(uuid()) @db.Uuid
@@ -96,6 +110,9 @@ model User {
   verificationReviews Verification[]
   caseActions    CaseAction[]
   passwordResets PasswordResetToken[]
+  warningsReceived WarningNotification[]
+  warningsAcknowledged EarlyWarningAlert[] @relation("WarningAcknowledgedBy")
+  generatedBulletins EarlyWarningBulletin[]
 }
 
 model Organization {
@@ -214,7 +231,61 @@ model ElectionCase {
   actions        CaseAction[]
   history        CaseStatusHistory[]
   escalations    Escalation[]
+  earlyWarnings EarlyWarningAlert[]
   @@index([status, riskLevel])
+}
+
+model EarlyWarningAlert {
+  id              String @id @default(uuid()) @db.Uuid
+  fingerprint     String @unique
+  ruleCode        String
+  severity        RiskLevel
+  title           String
+  summary         String
+  stateCode       String?
+  countyCode      String?
+  category        String?
+  caseId          String? @db.Uuid
+  details         Json?
+  status          EarlyWarningStatus @default(OPEN)
+  acknowledgedAt  DateTime?
+  acknowledgedById String? @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  acknowledgedBy  User? @relation("WarningAcknowledgedBy", fields: [acknowledgedById], references: [id])
+  electionCase    ElectionCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  notifications   WarningNotification[]
+  @@index([status, severity, createdAt])
+  @@index([ruleCode, createdAt])
+  @@index([caseId, ruleCode])
+}
+
+model WarningNotification {
+  id          String @id @default(uuid()) @db.Uuid
+  alertId     String @db.Uuid
+  recipientId String @db.Uuid
+  channel     WarningChannel
+  status      WarningDeliveryStatus
+  error       String?
+  deliveredAt DateTime?
+  createdAt   DateTime @default(now())
+  alert       EarlyWarningAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  recipient   User @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  @@unique([alertId, recipientId, channel])
+  @@index([recipientId, createdAt])
+}
+
+model EarlyWarningBulletin {
+  id          String @id @default(uuid()) @db.Uuid
+  period      String
+  periodStart DateTime
+  periodEnd   DateTime
+  content     Json
+  generatedById String? @db.Uuid
+  generatedAt DateTime @default(now())
+  generatedBy User? @relation(fields: [generatedById], references: [id])
+  @@unique([period, periodStart])
+  @@index([generatedAt])
 }
 
 model CaseReport {
