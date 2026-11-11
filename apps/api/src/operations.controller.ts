@@ -3,6 +3,15 @@ import { PrismaService } from './prisma.service';
 import { AuthGuard, CurrentUser, AuthUser } from './auth';
 
 const OPS_ROLES = ['ADMIN','SUPERVISOR','ANALYST','AUDITOR','RESPONSE_OFFICER','FIELD_VERIFIER'];
+const STATE_CODE_ALIASES: Record<string, string[]> = {
+  'Central Equatoria': ['CES', 'Central Equatoria'],
+  'Eastern Equatoria': ['EES', 'Eastern Equatoria'],
+  'Western Equatoria': ['WES', 'Western Equatoria'],
+  'Western Bahr el Ghazal': ['WBeG', 'Western Bahr el Ghazal'],
+  'Northern Bahr el Ghazal': ['NBeG', 'Northern Bahr el Ghazal'],
+  'Upper Nile': ['UPN', 'Upper Nile'],
+};
+
 @Controller('operations')
 @UseGuards(AuthGuard)
 export class OperationsController {
@@ -10,12 +19,12 @@ export class OperationsController {
   private assertRole(u: AuthUser) { if (!OPS_ROLES.includes(u.role)) throw new ForbiddenException('Operational access is restricted to authorised roles.'); }
 
   // Privacy-preserving map feed: never returns reporter identity, description, or tracking tokens.
-  @Get('map-points') async mapPoints(@CurrentUser() u: AuthUser, @Query('phase') phase?: string, @Query('state') state?: string) {
+  @Get('map-points') async mapPoints(@CurrentUser() u: AuthUser, @Query('phase') phase?: string, @Query('state') state?: string, @Query('county') county?: string) {
     this.assertRole(u);
     const validPhases = ['PRE_ELECTION','ELECTION_DAY','POST_ELECTION'];
     if (phase && !validPhases.includes(phase)) throw new ForbiddenException('Invalid electoral phase.');
     const reports = await this.db.report.findMany({
-      where: { latitude: { not: null }, longitude: { not: null }, ...(phase ? { phase: phase as any } : {}), ...(state ? { stateCode: state } : {}) },
+      where: { latitude: { not: null }, longitude: { not: null }, ...(phase ? { phase: phase as any } : {}), ...(state ? { stateCode: { in: STATE_CODE_ALIASES[state] ?? [state] } } : {}), ...(county ? { countyCode: county } : {}) },
       take: 2000, orderBy: { submittedAt: 'desc' },
       select: { id:true, reference:true, phase:true, category:true, status:true, stateCode:true, countyCode:true, locality:true, latitude:true, longitude:true, submittedAt:true, imminentThreat:true,
         caseLinks: { select: { electionCase: { select: { riskLevel:true, riskScore:true, status:true } } } } }
@@ -23,8 +32,8 @@ export class OperationsController {
     return reports.map(r => ({ id:r.id, reference:r.reference, phase:r.phase, category:r.category, status:r.status, stateCode:r.stateCode, countyCode:r.countyCode, locality:r.locality, latitude:Number(r.latitude), longitude:Number(r.longitude), submittedAt:r.submittedAt, imminentThreat:r.imminentThreat, riskLevel:r.caseLinks[0]?.electionCase.riskLevel ?? (r.imminentThreat ? 'CRITICAL' : 'MODERATE'), riskScore:r.caseLinks[0]?.electionCase.riskScore ? Number(r.caseLinks[0].electionCase.riskScore) : null }));
   }
 
-  @Get('geojson') async geoJson(@CurrentUser() u: AuthUser, @Query('phase') phase?: string, @Query('state') state?: string) {
-    const points = await this.mapPoints(u, phase, state);
+  @Get('geojson') async geoJson(@CurrentUser() u: AuthUser, @Query('phase') phase?: string, @Query('state') state?: string, @Query('county') county?: string) {
+    const points = await this.mapPoints(u, phase, state, county);
     return { type:'FeatureCollection', features: points.map(p => ({ type:'Feature', geometry:{type:'Point',coordinates:[p.longitude,p.latitude]}, properties:{reference:p.reference,phase:p.phase,category:p.category,status:p.status,stateCode:p.stateCode,countyCode:p.countyCode,locality:p.locality,submittedAt:p.submittedAt,riskLevel:p.riskLevel,riskScore:p.riskScore,imminentThreat:p.imminentThreat} })) };
   }
 

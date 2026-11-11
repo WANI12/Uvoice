@@ -191,6 +191,8 @@ model Verification {
   reviewerId  String @db.Uuid
   decision    VerificationDecision
   confidence  Int?
+  evidenceSummary String?
+  sources     String?
   rationale   String
   createdAt   DateTime @default(now())
   report      Report @relation(fields: [reportId], references: [id])
@@ -230,6 +232,7 @@ model CaseAssignment {
   userId         String? @db.Uuid
   organizationId String? @db.Uuid
   assignedAt     DateTime @default(now())
+  dueAt          DateTime?
   acknowledgedAt DateTime?
   active         Boolean @default(true)
   electionCase   ElectionCase @relation(fields: [caseId], references: [id])
