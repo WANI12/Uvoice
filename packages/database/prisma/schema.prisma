@@ -24,6 +24,7 @@ enum UserRole {
   SUPERVISOR
   ADMIN
   AUDITOR
+  EXECUTIVE
 }
 enum ElectoralPhase {
   PRE_ELECTION
@@ -113,6 +114,8 @@ model User {
   warningsReceived WarningNotification[]
   warningsAcknowledged EarlyWarningAlert[] @relation("WarningAcknowledgedBy")
   generatedBulletins EarlyWarningBulletin[]
+  recommendationsCreated ExecutiveRecommendation[] @relation("RecommendationAuthor")
+  recommendationsReviewed ExecutiveRecommendation[] @relation("RecommendationReviewer")
 }
 
 model Organization {
@@ -286,6 +289,31 @@ model EarlyWarningBulletin {
   generatedBy User? @relation(fields: [generatedById], references: [id])
   @@unique([period, periodStart])
   @@index([generatedAt])
+}
+
+enum RecommendationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ExecutiveRecommendation {
+  id            String @id @default(uuid()) @db.Uuid
+  title         String
+  rationale     String
+  action        String
+  stateCode     String?
+  countyCode    String?
+  status        RecommendationStatus @default(PENDING)
+  reviewNotes   String?
+  createdById   String @db.Uuid
+  reviewedById  String? @db.Uuid
+  createdAt     DateTime @default(now())
+  reviewedAt    DateTime?
+  createdBy     User @relation("RecommendationAuthor", fields: [createdById], references: [id])
+  reviewedBy    User? @relation("RecommendationReviewer", fields: [reviewedById], references: [id])
+  @@index([status, createdAt])
+  @@index([stateCode, countyCode])
 }
 
 model CaseReport {

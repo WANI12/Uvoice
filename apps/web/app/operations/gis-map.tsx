@@ -18,6 +18,7 @@ type Incident = {
   category: string;
   riskLevel: string;
 };
+export type IncidentCategoryCount = { category: string; count: number };
 
 const STATE_ALIASES: Record<string, string[]> = {
   'Central Equatoria': ['CES', 'Central Equatoria'],
@@ -126,7 +127,25 @@ function riskIsHigh(level: string) {
   return level === 'HIGH' || level === 'CRITICAL';
 }
 
-export default function GisMap({ api, phase }: { api: string; phase: string }) {
+export default function GisMap({
+  api,
+  phase,
+  embedded = false,
+  selectedCategories,
+  onCategoryCounts,
+  searchTerm = '',
+  selectedRisk,
+  refreshKey = 0,
+}: {
+  api: string;
+  phase: string;
+  embedded?: boolean;
+  selectedCategories?: string[];
+  onCategoryCounts?: (categories: IncidentCategoryCount[]) => void;
+  searchTerm?: string;
+  selectedRisk?: string;
+  refreshKey?: number;
+}) {
   const [states, setStates] = useState<Boundary[]>([]);
   const [counties, setCounties] = useState<Boundary[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -193,7 +212,7 @@ export default function GisMap({ api, phase }: { api: string; phase: string }) {
     }
     void loadIncidents();
     return () => controller.abort();
-  }, [api, phase, state, county]);
+  }, [api, phase, state, county, refreshKey]);
 
   const project = useMemo(() => states.length ? createProjector(states) : null, [states]);
   const countiesByState = useMemo(() => new Map(
@@ -205,8 +224,10 @@ export default function GisMap({ api, phase }: { api: string; phase: string }) {
     return counties.filter(feature => countiesByState.get(feature.properties.shapeName) === state);
   }, [counties, countiesByState, state]);
   const filteredIncidents = useMemo(() => incidents.filter(item =>
-    (!category || item.category === category) && (!risk || item.riskLevel === risk),
-  ), [category, incidents, risk]);
+    (selectedCategories === undefined ? !category || item.category === category : selectedCategories.includes(item.category)) &&
+    (!(selectedRisk === undefined ? risk : selectedRisk) || item.riskLevel === (selectedRisk === undefined ? risk : selectedRisk)) &&
+    (!searchTerm || `${item.category} ${item.stateCode || ''} ${item.countyCode || ''}`.toLowerCase().includes(searchTerm.toLowerCase())),
+  ), [category, incidents, risk, searchTerm, selectedCategories, selectedRisk]);
   const stateCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const item of filteredIncidents) {
@@ -242,6 +263,13 @@ export default function GisMap({ api, phase }: { api: string; phase: string }) {
     return [...buckets.values()];
   }, [filteredIncidents]);
   const categories = useMemo(() => [...new Set(incidents.map(item => item.category))].sort(), [incidents]);
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    incidents.forEach(item => counts.set(item.category, (counts.get(item.category) ?? 0) + 1));
+    return [...counts.entries()].map(([value, count]) => ({ category: value, count }));
+  }, [incidents]);
+
+  useEffect(() => { onCategoryCounts?.(categoryCounts); }, [categoryCounts, onCategoryCounts]);
 
   function selectState(value: string) {
     setState(value);
@@ -249,15 +277,15 @@ export default function GisMap({ api, phase }: { api: string; phase: string }) {
   }
 
   return (
-    <section className="card gis-card" aria-labelledby="gis-title">
-      <div className="gis-heading">
+    <section className={`card gis-card${embedded ? ' gis-card-embedded' : ''}`} aria-labelledby={embedded ? undefined : 'gis-title'} aria-label={embedded ? 'South Sudan incident map' : undefined}>
+      {!embedded && <div className="gis-heading">
         <div>
           <div className="eyebrow">INTERACTIVE GEOGRAPHIC VIEW</div>
           <h2 id="gis-title">South Sudan incident map</h2>
           <p className="muted">Explore report density by administrative area. Hotspots are grouped to protect precise locations.</p>
         </div>
         <div className="gis-count"><MapPin size={17}/><strong>{filteredIncidents.length}</strong><span>reports shown</span></div>
-      </div>
+      </div>}
       <div className="gis-controls">
         <label>State
           <select value={state} onChange={event => selectState(event.target.value)}>
@@ -271,18 +299,18 @@ export default function GisMap({ api, phase }: { api: string; phase: string }) {
             {visibleCounties.map(feature => <option key={feature.properties.shapeName} value={feature.properties.shapeName}>{feature.properties.shapeName}</option>)}
           </select>
         </label>
-        <label>Category
+        {selectedCategories === undefined && <label>Category
           <select value={category} onChange={event => setCategory(event.target.value)}>
             <option value="">All categories</option>
             {categories.map(value => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}
           </select>
-        </label>
-        <label>Risk level
+        </label>}
+        {selectedRisk === undefined && <label>Risk level
           <select value={risk} onChange={event => setRisk(event.target.value)}>
             <option value="">All risk levels</option>
             {['CRITICAL', 'HIGH', 'MODERATE', 'LOW'].map(value => <option key={value} value={value}>{value}</option>)}
           </select>
-        </label>
+        </label>}
       </div>
       <div className="gis-layout">
         <div className="gis-map-wrap">
@@ -332,7 +360,7 @@ export default function GisMap({ api, phase }: { api: string; phase: string }) {
           {incidentsLoading && <div className="gis-loading">Refreshing incident locations…</div>}
           {!incidentsLoading && !filteredIncidents.length && !error && <div className="gis-empty">No geolocated reports match these filters.</div>}
         </div>
-        <aside className="gis-legend">
+        {!embedded && <aside className="gis-legend">
           <h3>Map key</h3>
           <div><i className="legend-state"/> State boundary</div>
           <div><i className="legend-county"/> County boundary</div>
@@ -341,7 +369,7 @@ export default function GisMap({ api, phase }: { api: string; phase: string }) {
           <div><i className="legend-hotspot critical"/> High / critical risk</div>
           <p className="muted">Hotspots group nearby reports into approximate 20 km cells. They are not precise incident locations.</p>
           <p className="muted">Boundary data: geoBoundaries, South Sudan ADM1/ADM2 (2020), CC BY 3.0 IGO.</p>
-        </aside>
+        </aside>}
       </div>
       <p className="gis-footnote">{incidentsLoading ? 'Loading reports…' : `${filteredIncidents.length} geolocated reports · ${hotspots.length} grouped hotspot areas`} · Electoral phase filter follows the selection above.</p>
     </section>

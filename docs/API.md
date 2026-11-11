@@ -29,7 +29,7 @@ Accepted report response includes `reference`, `trackingToken` (one-time display
 
 ## Situation room and cases
 
-- `GET /dashboard/summary` — authorised analyst, response officer, auditor, supervisor or admin.
+- `GET /dashboard/summary` — authorised analyst, response officer (assigned cases only), auditor, supervisor, admin or executive (aggregate summary only).
 - `GET /cases` — assigned cases; analysts, auditors, supervisors and admins see the operational queue. Verifiers and response officers see assigned cases.
 - `GET /cases/:id` — assigned case detail; analysts, auditors, supervisors and admins may view the operational queue, while verifiers and response officers require an active assignment.
 - `GET /cases/assignment-options` — active authorised officers and institutions; supervisor/admin.
@@ -52,6 +52,19 @@ The case workspace is available at `/cases`; details and lifecycle actions are a
 - `POST /early-warning/bulletins/daily/generate` or `/early-warning/bulletins/weekly/generate` — refresh and persist the aggregate bulletin snapshot.
 
 The rule scan runs every minute by default. It creates deduplicated alerts for repeated county/category reports (3 in 24 hours), county concentrations (5 in 24 hours), unresolved critical cases, recent case escalations, and overdue assigned high/critical cases. Thresholds and scan cadence are configurable with `EARLY_WARNING_*` environment variables. Email delivery uses the existing SMTP settings; alerts remain available in-app when SMTP is not configured. Signals are not verified findings and never include reporter identity, narrative descriptions or tracking tokens.
+
+## Phase 2.5 analytics and executive intelligence
+
+- `GET /analytics/overview?from=...&to=...&phase=...&state=...&county=...&bucket=day|week|month` — live report, verification, geographic, case, response-performance and early-warning aggregates. Dates are ISO 8601; the default is the latest 30 days and ranges are capped at 366 days. County filters require a state.
+- `GET /analytics/executive?...` — restricted aggregate intelligence, priority incident references and approved strategic recommendations; ADMIN, SUPERVISOR, ANALYST or EXECUTIVE.
+- `GET /analytics/recommendations` — analyst/supervisor/auditor access to the review queue; EXECUTIVE receives approved recommendations only.
+- `POST /analytics/recommendations` `{title,rationale,action,stateCode?,countyCode?}` — submit a pending recommendation; ANALYST, SUPERVISOR or ADMIN.
+- `PATCH /analytics/recommendations/:id/review` `{decision:"APPROVED"|"REJECTED",notes}` — independently review and audit a pending recommendation; a user cannot review their own submission.
+- `GET /analytics/reports/:kind` — downloadable CSV. Supported kinds: `daily`, `weekly`, `monthly`, `state`, `county`, `critical`, `response`. State reports require `state`; county reports require `state` and `county`. Period and geography filters are supported.
+
+The analytics API reads PostgreSQL records directly; it does not keep manually maintained dashboard totals. Counts are based on report submission time and selected filters; verification counts reflect current report status. Response time is assignment-to-acknowledgement, while the resolution rate is closed cases divided by cases created in the selected period. Downloads include their data sources, reporting period, verification interpretation, methodology and limitations. They are aggregate CSVs; critical briefings include case/report references and limited classification/location fields, not reporter identity or narrative descriptions.
+
+Role access: ADMIN, SUPERVISOR and ANALYST have operational analytics and recommendation workflow access; AUDITOR is read-only; RESPONSE_OFFICER analytics are limited to actively assigned cases; EXECUTIVE sees restricted aggregates and approved recommendations. Assign the EXECUTIVE role through administrator user management.
 
 ## Administration
 

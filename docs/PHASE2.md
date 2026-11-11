@@ -84,3 +84,31 @@ Set `EARLY_WARNING_WINDOW_HOURS` (1–168), `EARLY_WARNING_REPEAT_THRESHOLD` (2�
 Bulletins are structured aggregate snapshots persisted by UTC day or week. They include counts, top categories/locations, case risk/status distributions and safeguards, but exclude reporter identity, report narratives, tracking tokens and precise coordinates. All rule matches are preliminary signals: staff must check for duplicate reports and verify context before deciding whether to escalate or act.
 
 Apply the Phase 2.4 migration with `npm run db:deploy`, then run `npm run db:generate` and rebuild. Local development may use `npm run db:migrate -- --name automated_early_warning`.
+
+## Phase 2.5 – National Situation-Room Analytics & Executive Intelligence
+
+The `/analytics` workspace and `/api/v1/analytics/overview` calculate aggregates directly from PostgreSQL for the selected reporting period, electoral phase and state/county. The dashboard covers reports received, critical unresolved incidents, open cases, verified/unverified/inconclusive reports, phase comparisons, daily/weekly/monthly trends, state/county comparisons, response acknowledgement times, overdue assignments, resolution rates, early-warning trends, priority incidents and assignment performance. Metrics are live aggregates, not manually maintained figures.
+
+The separate `/executive` workspace is restricted to executive-role users and authorised national leadership roles. It presents national risk and response summaries, priority incident references with limited classifications/location, institution performance, emerging geography and analyst-approved recommendations. It does not expose report narratives or reporter identities. The EXECUTIVE account role can be assigned only by an administrator.
+
+Analysts and supervisors can submit strategic recommendations with evidence-based rationale, proposed actions and optional geographic scope. Approval or rejection requires review notes and an independent reviewer; authors cannot review their own recommendations. Recommendation submissions and decisions are audit logged. Executives receive approved recommendations only.
+
+Downloadable CSVs are available for daily situation reports, weekly early-warning bulletins, monthly risk assessments, state and county reports, critical incident briefings, and response-performance reports. Each export states its sources, reporting period, verification interpretation, methodology and limitations. Exports contain aggregate figures; critical-incident rows include case/report references and limited risk, status, phase and location fields, but exclude reporter identity, report narratives and tracking credentials. CSV values are escaped to reduce spreadsheet formula-injection risk.
+
+Metric definitions and access:
+
+- Reports received and verification outcomes use `Report.submittedAt` and current report status in the selected range.
+- Open/critical cases are linked to reports matching the selected filters and are not closed; resolved-pending-review cases remain outstanding.
+- Average response time is assignment-to-acknowledgement. Overdue assignment and resolution-rate metrics use active assignments and cases created in the period, respectively.
+- ADMIN, SUPERVISOR and ANALYST have operational analytics; AUDITOR is read-only. RESPONSE_OFFICER analytics are scoped to active assignments. EXECUTIVE access is restricted to aggregate executive summaries and approved recommendations.
+- A county filter requires a state. Analytics periods are capped at 366 days. Missing/inconsistent administrative locations limit geographic comparisons. Trends are descriptive and automated alerts remain unverified recommendations.
+
+The additive Phase 2.5 migration adds the EXECUTIVE account role and persists recommendation review status. Apply all pending migrations, including Phase 2.4, and regenerate the Prisma client:
+
+```powershell
+npm run db:deploy
+npm run db:generate
+npm run build
+```
+
+Analytics is available at `/analytics`; the executive dashboard is at `/executive`.
