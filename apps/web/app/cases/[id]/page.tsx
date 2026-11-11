@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
+import SituationRoomShell from '../../components/situation-room-shell';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -154,6 +155,7 @@ export default function CaseDetailPage() {
   ) : [];
 
   return (
+    <SituationRoomShell>
     <main className="container case-detail-page" style={{ paddingTop: 32, paddingBottom: 70 }}>
       <header className="dashhead">
         <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">National election early warning workspace</p></div>
@@ -273,6 +275,7 @@ export default function CaseDetailPage() {
         {record.assignments.length > 0 && <section className="card case-panel"><h2>Assignment history</h2><div className="tablewrap"><table><thead><tr><th>Assigned to</th><th>Assigned</th><th>Deadline</th><th>State</th></tr></thead><tbody>{record.assignments.map(item => <tr key={item.id}><td>{item.user?.displayName || item.organization?.name || '—'}</td><td>{new Date(item.assignedAt).toLocaleString()}</td><td>{item.dueAt ? new Date(item.dueAt).toLocaleString() : 'Not set'}</td><td>{item.active ? 'Current' : 'Previous'}</td></tr>)}</tbody></table></div></section>}
       </>}
     </main>
+    </SituationRoomShell>
   );
 }
 

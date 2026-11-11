@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import SituationRoomShell from '../components/situation-room-shell';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 const ROLES = ['REPORTER', 'JOURNALIST', 'CSO_MONITOR', 'FIELD_VERIFIER', 'ANALYST', 'RESPONSE_OFFICER', 'ORG_COORDINATOR', 'SUPERVISOR', 'ADMIN', 'AUDITOR', 'EXECUTIVE'];
@@ -54,7 +55,7 @@ export default function Admin() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to update user role.'); }
   }
 
-  return <main className="container" style={{ paddingTop: 40, paddingBottom: 70 }}>
+  return <SituationRoomShell><main className="container" style={{ paddingTop: 40, paddingBottom: 70 }}>
     <Link href="/dashboard" className="brand">← UVOICE</Link>
     <h1 style={{ marginTop: 24 }}>Administration</h1>
     <p className="muted">Organisation approvals and user role administration. Actions are recorded in the audit log.</p>
@@ -77,5 +78,5 @@ export default function Admin() {
         </tr>)}
       </tbody></table></div>
     </section>
-  </main>;
+  </main></SituationRoomShell>;
 }

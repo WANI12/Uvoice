@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileDown, RefreshCw } from 'lucide-react';
+import SituationRoomShell from '../components/situation-room-shell';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -134,6 +135,7 @@ export default function AnalyticsPage() {
   const maxPhase = Math.max(1, ...(data?.reportsByPhase.map(row => row.count) ?? []));
 
   return (
+    <SituationRoomShell>
     <main className="container analytics-page">
       <header className="dashhead">
         <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">National election situation room</p></div>
@@ -208,6 +210,7 @@ export default function AnalyticsPage() {
         </section>
       </>}
     </main>
+    </SituationRoomShell>
   );
 }
 

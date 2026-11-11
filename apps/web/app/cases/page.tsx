@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ClipboardList, RefreshCw } from 'lucide-react';
+import SituationRoomShell from '../components/situation-room-shell';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -64,6 +65,7 @@ export default function CasesPage() {
   }).length;
 
   return (
+    <SituationRoomShell>
     <main className="container" style={{ paddingTop: 32, paddingBottom: 70 }}>
       <header className="dashhead">
         <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">National election early warning workspace</p></div>
@@ -108,6 +110,7 @@ export default function CasesPage() {
         </section>
       </>}
     </main>
+    </SituationRoomShell>
   );
 }
 

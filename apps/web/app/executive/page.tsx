@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileDown, RefreshCw } from 'lucide-react';
+import SituationRoomShell from '../components/situation-room-shell';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 type Briefing = {
@@ -75,7 +76,7 @@ export default function ExecutivePage() {
 
   const maxPhase = Math.max(1, ...(data?.reportsByPhase.map(item => item.count) || []));
 
-  return <main className="container analytics-page">
+  return <SituationRoomShell><main className="container analytics-page">
     <header className="dashhead">
       <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">Restricted national intelligence view</p></div>
       <div className="row"><Link className="btn secondary" href="/dashboard">Situation room</Link><Link className="btn secondary" href="/analytics">Operational analytics</Link></div>
@@ -129,7 +130,7 @@ export default function ExecutivePage() {
       </section>
       <section className="card analytics-table-card"><h2>Methodology and limitations</h2><ul className="analytics-limitations">{data.limitations.map(item => <li key={item}>{item}</li>)}</ul></section>
     </>}
-  </main>;
+  </main></SituationRoomShell>;
 }
 
 function Metric({ label, value }: { label: string; value: string | number }) {

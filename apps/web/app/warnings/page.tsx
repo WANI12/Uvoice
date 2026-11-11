@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, BellRing, FileText, RefreshCw } from 'lucide-react';
+import SituationRoomShell from '../components/situation-room-shell';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -136,6 +137,7 @@ export default function WarningsPage() {
   const canManage = ['ADMIN', 'SUPERVISOR', 'ANALYST'].includes(role);
 
   return (
+    <SituationRoomShell>
     <main className="container warning-page" style={{ paddingTop: 32, paddingBottom: 70 }}>
       <header className="dashhead">
         <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">National election early warning workspace</p></div>
@@ -186,6 +188,7 @@ export default function WarningsPage() {
         </section>
       </>}
     </main>
+    </SituationRoomShell>
   );
 }
 
