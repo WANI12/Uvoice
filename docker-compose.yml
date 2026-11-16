@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: sautiwatch
       POSTGRES_PASSWORD: sautiwatch_dev_password
       POSTGRES_DB: sautiwatch
-    ports: ["5432:5432"]
+    ports: ["5433:5432"]
     volumes: ["sautiwatch_pgdata:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sautiwatch -d sautiwatch"]
