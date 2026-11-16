@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { describe, expect, it, jest } from '@jest/globals';
 import { CasesController } from './cases.controller';
 import { PrismaService } from './prisma.service';
 import { AuthUser } from './auth';
@@ -15,16 +16,16 @@ describe('CasesController lifecycle', () => {
 
   function makeController(status: string) {
     const tx = {
-      electionCase: { update: jest.fn().mockResolvedValue({ id: 'case-1', status: 'RESOLVED_PENDING_REVIEW' }) },
-      caseStatusHistory: { create: jest.fn().mockResolvedValue({}) },
-      caseAction: { create: jest.fn().mockResolvedValue({}) },
-      auditEvent: { create: jest.fn().mockResolvedValue({}) },
+      electionCase: { update: jest.fn<() => Promise<{ id: string; status: string }>>().mockResolvedValue({ id: 'case-1', status: 'RESOLVED_PENDING_REVIEW' }) },
+      caseStatusHistory: { create: jest.fn<() => Promise<{ id: string }>>().mockResolvedValue({ id: 'history-1' }) },
+      caseAction: { create: jest.fn<() => Promise<{}>>().mockResolvedValue({}) },
+      auditEvent: { create: jest.fn<() => Promise<{}>>().mockResolvedValue({}) },
     };
     const db = {
-      electionCase: { findUnique: jest.fn().mockResolvedValue({ id: 'case-1', status }) },
-      organizationMembership: { findMany: jest.fn().mockResolvedValue([]) },
+      electionCase: { findUnique: jest.fn<() => Promise<{ id: string; status: string }>>().mockResolvedValue({ id: 'case-1', status }) },
+      organizationMembership: { findMany: jest.fn<() => Promise<unknown[]>>().mockResolvedValue([]) },
       caseAssignment: { findFirst: jest.fn() },
-      $transaction: jest.fn(async callback => callback(tx as never)),
+      $transaction: jest.fn(async (callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx)),
     };
     return { controller: new CasesController(db as unknown as PrismaService), db, tx };
   }
