@@ -168,7 +168,7 @@ export default function Dashboard() {
 
           <section className="situation-map-area">
             <div className="situation-map-heading">
-              <div><span className="situation-kicker">NATIONAL ELECTION SITUATION ROOM</span><h2>South Sudan incident map</h2><p>State and county boundaries with privacy-protected report hotspots.</p></div>
+              <div><span className="situation-kicker">NATIONAL ELECTION SITUATION ROOM</span><h2>South Sudan incident map</h2><p>State and county boundaries, generalized report markers, and grouped hotspot areas.</p></div>
               <div className="situation-map-stats">
                 <div><strong>{data?.metrics.totalReports ?? '—'}</strong><span>Reports</span></div>
                 <div><strong>{data?.metrics.criticalCases ?? '—'}</strong><span>Critical</span></div>
@@ -190,7 +190,7 @@ export default function Dashboard() {
               />
             )}
             {data && <div className="situation-map-footer">
-              <span><span className="situation-map-legend-dot"/> Incident hotspot <span className="situation-map-high-dot"/> High / critical</span>
+              <span><span className="situation-map-report-dot"/> Report <span className="situation-map-legend-dot"/> Hotspot <span className="situation-map-high-dot"/> High / critical</span>
               <span>Counts reflect the recent geolocated map feed (up to 2,000 reports). Verify all signals before action.</span>
             </div>}
           </section>

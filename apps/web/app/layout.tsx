@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './gis-markers.css';
 import './phase25.css';
 import './situation-room.css';
 import './workspace-shell.css';

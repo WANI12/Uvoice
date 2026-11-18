@@ -11,6 +11,7 @@ type Boundary = { type: 'Feature'; properties: { shapeName: string }; geometry: 
 type FeatureCollection = { type: 'FeatureCollection'; features: Boundary[] };
 type Incident = {
   id: string;
+  reference: string;
   stateCode: string | null;
   countyCode: string | null;
   latitude: number;
@@ -127,6 +128,20 @@ function riskIsHigh(level: string) {
   return level === 'HIGH' || level === 'CRITICAL';
 }
 
+function approximateReportPosition(item: Incident): Position {
+  const cellSize = 0.18;
+  const cellX = Math.floor(item.longitude / cellSize);
+  const cellY = Math.floor(item.latitude / cellSize);
+  let hash = 0;
+  for (const character of item.id) hash = (Math.imul(hash, 31) + character.charCodeAt(0)) >>> 0;
+  const secondaryHash = Math.imul(hash ^ (hash >>> 16), 0x45d9f3b) >>> 0;
+  const offset = (value: number) => ((value % 41) - 20) * 0.001;
+  return [
+    (cellX + 0.5) * cellSize + offset(hash),
+    (cellY + 0.5) * cellSize + offset(secondaryHash),
+  ];
+}
+
 export default function GisMap({
   api,
   phase,
@@ -156,6 +171,7 @@ export default function GisMap({
   const [showStates, setShowStates] = useState(true);
   const [showCounties, setShowCounties] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
+  const [showReports, setShowReports] = useState(true);
   const [boundaryError, setBoundaryError] = useState('');
   const [incidentError, setIncidentError] = useState('');
   const [boundariesLoading, setBoundariesLoading] = useState(true);
@@ -282,7 +298,7 @@ export default function GisMap({
         <div>
           <div className="eyebrow">INTERACTIVE GEOGRAPHIC VIEW</div>
           <h2 id="gis-title">South Sudan incident map</h2>
-          <p className="muted">Explore report density by administrative area. Hotspots are grouped to protect precise locations.</p>
+          <p className="muted">Blue and red markers show individual reports at generalized locations; hotspot circles show nearby report counts.</p>
         </div>
         <div className="gis-count"><MapPin size={17}/><strong>{filteredIncidents.length}</strong><span>reports shown</span></div>
       </div>}
@@ -318,13 +334,14 @@ export default function GisMap({
             <span><Layers size={15}/> Layers</span>
             <label><input type="checkbox" checked={showStates} onChange={event => setShowStates(event.target.checked)}/> States</label>
             <label><input type="checkbox" checked={showCounties} onChange={event => setShowCounties(event.target.checked)}/> Counties</label>
+            <label><input type="checkbox" checked={showReports} onChange={event => setShowReports(event.target.checked)}/> Reports</label>
             <label><input type="checkbox" checked={showHotspots} onChange={event => setShowHotspots(event.target.checked)}/> Hotspots</label>
           </div>
           {error && <p className="error gis-error" role="alert">{error}</p>}
           {boundariesLoading ? <div className="gis-placeholder">Loading administrative boundaries…</div> : project && (
             <svg className="gis-map" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-labelledby="gis-map-title gis-map-description">
               <title id="gis-map-title">South Sudan state and county incident map</title>
-              <desc id="gis-map-description">Administrative boundaries shaded by report volume. Incident hotspots show grouped report counts.</desc>
+              <desc id="gis-map-description">Administrative boundaries shaded by report volume. Generalized report markers and grouped hotspot circles show incident locations and density.</desc>
               {showStates && states.map(feature => {
                 const count = stateCounts.get(feature.properties.shapeName) ?? 0;
                 return <path key={feature.properties.shapeName} className="gis-state"
@@ -355,6 +372,13 @@ export default function GisMap({
                   {bucket.count > 1 && <text x={x} y={y + 3.5}>{bucket.count}</text>}
                 </g>;
               })}
+              {showReports && filteredIncidents.map(item => {
+                const [x, y] = project(approximateReportPosition(item));
+                const riskClass = riskIsHigh(item.riskLevel) ? ' high-risk' : '';
+                return <circle key={item.id} className={`gis-report-marker${riskClass}`} cx={x} cy={y} r={3.5}>
+                  <title>{`${item.reference} · ${item.category.replaceAll('_', ' ')} · ${item.riskLevel.toLowerCase()} risk · ${[item.countyCode, item.stateCode].filter(Boolean).join(', ') || 'Location not specified'}. Approximate location.`}</title>
+                </circle>;
+              })}
             </svg>
           )}
           {incidentsLoading && <div className="gis-loading">Refreshing incident locations…</div>}
@@ -365,9 +389,10 @@ export default function GisMap({
           <div><i className="legend-state"/> State boundary</div>
           <div><i className="legend-county"/> County boundary</div>
           <div><i className="legend-fill"/> Reports in area</div>
+          <div><i className="legend-report"/> Geolocated report (approx.)</div>
           <div><i className="legend-hotspot"/> Incident hotspot</div>
           <div><i className="legend-hotspot critical"/> High / critical risk</div>
-          <p className="muted">Hotspots group nearby reports into approximate 20 km cells. They are not precise incident locations.</p>
+          <p className="muted">Report markers are generalized within approximate 20 km cells. Hotspots show grouped report counts; neither indicates a precise incident location.</p>
           <p className="muted">Boundary data: geoBoundaries, South Sudan ADM1/ADM2 (2020), CC BY 3.0 IGO.</p>
         </aside>}
       </div>
