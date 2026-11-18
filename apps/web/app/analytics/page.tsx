@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileDown, RefreshCw } from 'lucide-react';
 import SituationRoomShell from '../components/situation-room-shell';
+import { StateRiskComparison, TrendChart } from '../components/analytics-visualizations';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -51,6 +52,7 @@ export default function AnalyticsPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [role, setRole] = useState('');
   const [filters, setFilters] = useState({ from: '', to: '', phase: '', state: '', county: '', bucket: 'day' });
+  const [appliedFilters, setAppliedFilters] = useState(filters);
   const [form, setForm] = useState({ title: '', rationale: '', action: '', stateCode: '', countyCode: '' });
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
@@ -64,7 +66,7 @@ export default function AnalyticsPage() {
     try {
       const currentUser = await request<{ role: string }>('/auth/me');
       setRole(currentUser.role);
-      const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value));
+      const params = new URLSearchParams(Object.entries(appliedFilters).filter(([, value]) => value));
       const [overview, recs] = await Promise.all([
         request<Overview>(`/analytics/overview${params.size ? `?${params}` : ''}`),
         request<Recommendation[]>('/analytics/recommendations'),
@@ -76,7 +78,7 @@ export default function AnalyticsPage() {
       if (text.includes('Sign in') || text.includes('session')) location.href = '/login';
       else setError(text);
     } finally { setLoading(false); }
-  }, [filters]);
+  }, [appliedFilters]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -84,7 +86,7 @@ export default function AnalyticsPage() {
   const canReview = ['ADMIN', 'SUPERVISOR', 'ANALYST'].includes(role);
 
   function reportUrl(kind: string) {
-    const params = new URLSearchParams(Object.entries(filters).filter(([key, value]) => value && key !== 'bucket'));
+    const params = new URLSearchParams(Object.entries(appliedFilters).filter(([key, value]) => value && key !== 'bucket'));
     return `${API}/analytics/reports/${kind}${params.size ? `?${params}` : ''}`;
   }
 
@@ -100,7 +102,7 @@ export default function AnalyticsPage() {
       const blob = await response.blob();
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `uvoice-${kind}-report.csv`;
+      link.download = `sautiwatch-${kind}-report.csv`;
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to download report.'); }
@@ -131,48 +133,63 @@ export default function AnalyticsPage() {
     finally { setBusy(false); }
   }
 
-  const maxTrend = Math.max(1, ...(data?.reportTrend.map(row => row.count) ?? []));
   const maxPhase = Math.max(1, ...(data?.reportsByPhase.map(row => row.count) ?? []));
+  const riskByState = data?.geographic.riskByState ?? [];
+  const countyComparisons = data?.geographic.counties ?? [];
+  const maxCountyCount = Math.max(1, ...countyComparisons.map(row => row.count));
 
   return (
     <SituationRoomShell>
     <main className="container analytics-page">
       <header className="dashhead">
-        <div><Link href="/" className="brand">◈ UVOICE</Link><p className="muted">National election situation room</p></div>
+        <div><Link href="/" className="brand">◈ SAUTIWATCH</Link><p className="muted">National election situation room</p></div>
         <div className="row"><Link className="btn secondary" href="/dashboard">Situation room</Link><Link className="btn secondary" href="/executive">Executive dashboard</Link></div>
       </header>
       <div className="row between analytics-heading">
         <div><div className="eyebrow">PHASE 2.5 · NATIONAL ANALYTICS</div><h1>Situation-room analytics</h1><p className="muted">Live database aggregates for operational analysis. Trends are descriptive, not forecasts.</p></div>
         <button className="btn secondary" onClick={() => void load()} disabled={loading}><RefreshCw size={16}/> Refresh</button>
       </div>
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && <div className="error analytics-error" role="alert"><span>{error}{data && ' Previous results remain visible; refresh to try again.'}</span>{!data && <button className="btn secondary" onClick={() => void load()}>Try again</button>}</div>}
       {message && <p className="success" role="status">{message}</p>}
       <section className="card analytics-filters">
         <label>From<input type="date" value={filters.from} onChange={event => setFilters({ ...filters, from: event.target.value })}/></label>
         <label>To<input type="date" value={filters.to} onChange={event => setFilters({ ...filters, to: event.target.value })}/></label>
         <label>Electoral phase<select value={filters.phase} onChange={event => setFilters({ ...filters, phase: event.target.value })}><option value="">All phases</option><option value="PRE_ELECTION">Pre-election</option><option value="ELECTION_DAY">Election day</option><option value="POST_ELECTION">Post-election</option></select></label>
-        <label>State code<input value={filters.state} onChange={event => setFilters({ ...filters, state: event.target.value, county: event.target.value ? filters.county : '' })} placeholder="e.g. CES"/></label>
+        <label>State code<input value={filters.state} onChange={event => setFilters({ ...filters, state: event.target.value, county: '' })} placeholder="e.g. CES"/></label>
         <label>County code<input value={filters.county} onChange={event => setFilters({ ...filters, county: event.target.value })} placeholder="Requires state code"/></label>
         <label>Trend interval<select value={filters.bucket} onChange={event => setFilters({ ...filters, bucket: event.target.value })}><option value="day">Daily</option><option value="week">Weekly</option><option value="month">Monthly</option></select></label>
+        <div className="analytics-filter-actions">
+          <button className="btn" onClick={() => setAppliedFilters({ ...filters })} disabled={loading}>Apply filters</button>
+          <button className="btn secondary" onClick={() => { const defaults = { from: '', to: '', phase: '', state: '', county: '', bucket: 'day' }; setFilters(defaults); setAppliedFilters(defaults); }} disabled={loading}>Reset filters</button>
+          {JSON.stringify(filters) !== JSON.stringify(appliedFilters) && <span className="muted" role="status">Filters changed. Apply to refresh results.</span>}
+        </div>
       </section>
-      {loading ? <div className="card">Loading live analytics…</div> : data && <>
+      {loading && !data && <div className="card analytics-loading" role="status"><span className="situation-spinner"/> Loading national intelligence…</div>}
+      {!loading && !data && !error && <div className="card analytics-empty-state"><h2>No analytics data available</h2><p className="muted">No results could be loaded for the current filters.</p><button className="btn secondary" onClick={() => void load()}>Try again</button></div>}
+      {data && <>
+        {loading && <p className="analytics-refreshing" role="status">Refreshing intelligence for the applied filters…</p>}
         <p className="analytics-asof">Selected period: {new Date(data.reportingPeriod.from).toLocaleDateString()} – {new Date(data.reportingPeriod.to).toLocaleDateString()} · Updated {new Date(data.generatedAt).toLocaleString()}</p>
-        <section className="metricgrid analytics-metrics">
+        <div className="analytics-kpi-section"><div className="analytics-section-heading"><div><div className="eyebrow">NATIONAL SNAPSHOT</div><h2>Key indicators</h2></div><span className="muted">For the selected reporting period</span></div>
+        <section className="metricgrid analytics-metrics analytics-primary-metrics">
           <Metric label="Reports received" value={data.metrics.reportsReceived}/>
           <Metric label="Critical incidents" value={data.metrics.criticalIncidents}/>
           <Metric label="Open cases" value={data.metrics.openCases}/>
           <Metric label="Verified reports" value={data.metrics.verifiedReports}/>
+        </section>
+        <section className="metricgrid analytics-metrics analytics-secondary-metrics">
           <Metric label="Overdue assignments" value={data.metrics.overdueAssignments}/>
           <Metric label="Resolution rate" value={`${data.metrics.resolutionRate}%`}/>
           <Metric label="Avg. hours to acknowledgement" value={data.metrics.responseHoursToAcknowledgement ?? '—'}/>
           <Metric label="Unverified / inconclusive" value={`${data.metrics.unverifiedReports} / ${data.metrics.inconclusiveReports}`}/>
         </section>
+        </div>
+        <div className="analytics-section-heading analytics-section-heading-spaced"><div><div className="eyebrow">TRENDS &amp; PERFORMANCE</div><h2>National indicators</h2></div></div>
         <div className="grid2 analytics-charts">
           <section className="card"><h2>Reports by electoral phase</h2>{data.reportsByPhase.length ? data.reportsByPhase.map(row => <Bar key={row.phase} label={format(row.phase)} value={row.count} max={maxPhase}/>) : <p className="muted">No reports in this period.</p>}</section>
-          <section className="card"><h2>Incident reporting trend</h2><div className="analytics-trend">{data.reportTrend.length ? data.reportTrend.map(row => <div className="trend-column" key={row.period} title={`${new Date(row.period).toLocaleDateString()}: ${row.count}`}><span style={{ height: `${Math.max(3, row.count / maxTrend * 100)}%` }}/><small>{new Date(row.period).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</small></div>) : <p className="muted">No reports in this period.</p>}</div></section>
-          <section className="card"><h2>Verification performance</h2>{data.verification.filter(row => row.count).map(row => <Bar key={row.status} label={format(row.status)} value={row.count} max={Math.max(1, ...data.verification.map(item => item.count))}/>)}</section>
-          <section className="card"><h2>Case risk by state</h2>{data.geographic.riskByState.length ? data.geographic.riskByState.slice(0, 16).map(row => <Bar key={`${row.state}-${row.riskLevel}`} label={`${row.state} · ${format(row.riskLevel)}`} value={row.count} max={Math.max(1, ...data.geographic.riskByState.map(item => item.count))}/>) : <p className="muted">No located case-linked reports in this period.</p>}</section>
-          <section className="card"><h2>County incident comparisons</h2>{data.geographic.counties.length ? data.geographic.counties.slice(0, 10).map(row => <Bar key={`${row.state}-${row.county}`} label={`${row.county}, ${row.state}`} value={row.count} max={Math.max(1, ...data.geographic.counties.map(item => item.count))}/>) : <p className="muted">No located county reports in this period.</p>}</section>
+          <section className="card"><h2>Incident reporting trend</h2>{data.reportTrend.length ? <TrendChart rows={data.reportTrend}/> : <p className="muted analytics-chart-empty">No reports in this period. Try a wider date range.</p>}</section>
+          <section className="card"><h2>Verification performance</h2>{data.verification.some(row => row.count) ? data.verification.filter(row => row.count).map(row => <Bar key={row.status} label={format(row.status)} value={row.count} max={Math.max(1, ...data.verification.map(item => item.count))}/>) : <p className="muted analytics-chart-empty">No verification outcomes are available for this period.</p>}</section>
+          <section className="card analytics-geographic-card"><h2>Case risk by state</h2><p className="analytics-card-description">Compare reported case counts by risk level; segments show each state’s mix.</p>{riskByState.length ? <StateRiskComparison rows={riskByState}/> : <p className="muted analytics-chart-empty">No located case-linked reports in this period.</p>}</section>
+          <section className="card"><h2>County incident comparisons</h2><p className="analytics-card-description">Highest-reporting counties for this period.</p>{countyComparisons.length ? countyComparisons.slice(0, 10).map(row => <Bar key={`${row.state}-${row.county}`} label={`${row.county}, ${row.state}`} value={row.count} max={maxCountyCount}/>) : <p className="muted analytics-chart-empty">No located county reports in this period.</p>}</section>
         </div>
         <section className="card analytics-table-card">
           <h2>Emerging early-warning trends</h2>
@@ -180,16 +197,16 @@ export default function AnalyticsPage() {
         </section>
         <section className="card analytics-table-card">
           <h2>Response institution performance</h2>
-          {data.responsePerformance.institutions.length ? <div className="tablewrap"><table><thead><tr><th>Institution / assignee</th><th>Assigned</th><th>Acknowledged</th><th>Resolved</th><th>Overdue</th></tr></thead><tbody>{data.responsePerformance.institutions.map(row => <tr key={row.institution}><td>{row.institution}</td><td>{row.assigned}</td><td>{row.acknowledged}</td><td>{row.resolved}</td><td>{row.overdue}</td></tr>)}</tbody></table></div> : <p className="muted">No assignments in this period.</p>}
+          {data.responsePerformance.institutions.length ? <div className="tablewrap"><table><thead><tr><th>Institution / assignee</th><th>Assigned</th><th>Acknowledged</th><th>Resolved</th><th>Resolution progress</th><th>Overdue</th></tr></thead><tbody>{data.responsePerformance.institutions.map(row => <tr key={row.institution}><td>{row.institution}</td><td>{row.assigned}</td><td>{row.acknowledged}</td><td>{row.resolved}</td><td><div className="analytics-response-progress" role="img" aria-label={`${row.resolved} of ${row.assigned} assignments resolved`}><span style={{ width: `${row.assigned ? Math.min(100, row.resolved / row.assigned * 100) : 0}%` }}/></div><small>{row.assigned ? Math.round(row.resolved / row.assigned * 100) : 0}%</small></td><td>{row.overdue}</td></tr>)}</tbody></table></div> : <p className="muted">No response assignments in this period.</p>}
         </section>
         <section className="card analytics-table-card">
           <h2>Priority incidents requiring review</h2>
-          {data.priorityIncidents.length ? <div className="tablewrap"><table><thead><tr><th>Case</th><th>Risk</th><th>Location</th><th>Category</th><th>Verification</th><th>Status</th></tr></thead><tbody>{data.priorityIncidents.map(item => <tr key={item.caseReference}><td>{item.caseReference}</td><td>{item.riskLevel}</td><td>{[item.report?.county, item.report?.state].filter(Boolean).join(', ') || 'Unspecified'}</td><td>{item.report ? format(item.report.category) : '—'}</td><td>{item.report ? format(item.report.verificationStatus) : '—'}</td><td>{format(item.status)}</td></tr>)}</tbody></table></div> : <p className="muted">No high or critical unresolved cases match these filters.</p>}
+          {data.priorityIncidents.length ? <div className="tablewrap"><table className="analytics-priority-table"><thead><tr><th>Case</th><th>Risk</th><th>Location</th><th>Category</th><th>Verification</th><th>Status</th></tr></thead><tbody>{data.priorityIncidents.map(item => <tr key={item.caseReference}><td><strong>{item.caseReference}</strong></td><td><span className={`analytics-risk-badge analytics-risk-${item.riskLevel.toLowerCase()}`}>{format(item.riskLevel)}</span></td><td>{[item.report?.county, item.report?.state].filter(Boolean).join(', ') || 'Unspecified'}</td><td>{item.report ? format(item.report.category) : '—'}</td><td>{item.report ? format(item.report.verificationStatus) : '—'}</td><td>{format(item.status)}</td></tr>)}</tbody></table></div> : <p className="muted">No high or critical unresolved cases match these filters.</p>}
         </section>
         <section className="card analytics-table-card">
           <h2>Executive report downloads</h2>
           <p className="muted">CSV reports include reporting period, source, verification status, methodology and limitations. Downloads contain aggregate indicators and limited incident references; no reporter identities or narratives.</p>
-          <div className="analytics-downloads">{[['daily','Daily situation report'],['weekly','Weekly early-warning bulletin'],['monthly','Monthly risk assessment'],['critical','Critical incident briefing'],['response','Response performance report'],['state','State report'],['county','County report']].map(([kind, label]) => <button key={kind} className="btn secondary" disabled={busy || (kind === 'state' && !filters.state) || (kind === 'county' && (!filters.state || !filters.county))} onClick={() => void download(kind)}><FileDown size={15}/>{label}</button>)}</div>
+          <div className="analytics-downloads">{[['daily','Daily situation report'],['weekly','Weekly early-warning bulletin'],['monthly','Monthly risk assessment'],['critical','Critical incident briefing'],['response','Response performance report'],['state','State report'],['county','County report']].map(([kind, label]) => <button key={kind} className="btn secondary" disabled={busy || loading || (kind === 'state' && !appliedFilters.state) || (kind === 'county' && (!appliedFilters.state || !appliedFilters.county))} onClick={() => void download(kind)}><FileDown size={15}/>{label}</button>)}</div>
         </section>
         <section className="grid2 analytics-recommendations">
           {canWrite && <form className="card" onSubmit={submitRecommendation}>

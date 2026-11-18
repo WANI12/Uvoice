@@ -50,11 +50,11 @@ export default function SituationRoomShell({ children, toolbar }: Props) {
   const searchResults = search.trim()
     ? links.filter(item => item.label.toLowerCase().includes(search.trim().toLowerCase()))
     : [];
-  const activeLabel = links.find(item => item.href === pathname)?.label || 'UVoice';
+  const activeLabel = links.find(item => item.href === pathname)?.label || 'SautiWatch';
 
   async function share() {
     try {
-      if (navigator.share) await navigator.share({ title: `UVoice · ${activeLabel}`, url: location.href });
+      if (navigator.share) await navigator.share({ title: `SautiWatch · ${activeLabel}`, url: location.href });
       else {
         await navigator.clipboard.writeText(location.href);
         setShareMessage('Link copied');
@@ -78,15 +78,15 @@ export default function SituationRoomShell({ children, toolbar }: Props) {
   return (
     <div className="situation-shell">
       <aside className="situation-rail">
-        <Link href="/" className="situation-brand" aria-label="UVoice South Sudan home">
-          <span className="situation-brand-mark">◈</span><span>UVOICE<small>SOUTH SUDAN</small></span>
+        <Link href="/" className="situation-brand" aria-label="SautiWatch South Sudan home">
+          <span className="situation-brand-mark">◈</span><span>SAUTIWATCH<small>SOUTH SUDAN</small></span>
         </Link>
         <div className="situation-workspace">
           <div className="situation-workspace-mark"><Layers size={23}/></div>
           <div className="situation-workspace-copy"><strong>Situation Room</strong><small>National operations</small></div>
         </div>
         <div className="situation-identity"><span className="situation-online-dot"/> Signed in as
-          <strong>{user?.displayName || 'UVoice visitor'}</strong><small>{user?.role?.replaceAll('_', ' ') || 'PUBLIC ACCESS'}</small>
+          <strong>{user?.displayName || 'SautiWatch visitor'}</strong><small>{user?.role?.replaceAll('_', ' ') || 'PUBLIC ACCESS'}</small>
         </div>
         <Link className="situation-add-report" href="/report" aria-label="Add new report"><Plus size={19}/> Add new report</Link>
         <nav className="situation-nav" aria-label="Situation room">
@@ -102,7 +102,7 @@ export default function SituationRoomShell({ children, toolbar }: Props) {
           {user ? <button className="situation-nav-link situation-logout" aria-label="Sign out" onClick={signOut}><LogOut size={19}/><span>Sign out</span></button>
             : <Link className="situation-nav-link" href="/login" aria-label="Sign in"><LogOut size={19}/><span>Sign in</span></Link>}
         </div>
-        <div className="situation-rail-footer">UVoice · Operational workspace</div>
+        <div className="situation-rail-footer">SautiWatch · Operational workspace</div>
       </aside>
       <section className="situation-main">
         <header className="situation-topbar">

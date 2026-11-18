@@ -1,6 +1,6 @@
-# UVoice South Sudan
+# SautiWatch South Sudan
 
-UVoice is an election early-warning and response MVP for community reporters, journalists, civil society monitors, analysts and authorised response institutions. It supports the pre-election, election-day and post-election phases.
+SautiWatch is an election early-warning and response MVP for community reporters, journalists, civil society monitors, analysts and authorised response institutions. It supports the pre-election, election-day and post-election phases.
 
 ## Included in this release
 
